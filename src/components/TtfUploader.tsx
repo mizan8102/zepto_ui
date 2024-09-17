@@ -1,53 +1,57 @@
 import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import axios from "axios";
+import axiosInstance from "../helpers/axios/axiosInstance";
+import { useDispatch } from 'react-redux';
+import { triggerRefresh } from '../redux/fontsSlice';
 
 const TtfUploader: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const dispatch = useDispatch();
 
   const uploadFile = async (file: File) => {
     const formData = new FormData();
-    formData.append("file", file); // Append file to form data
+    formData.append("font", file);
 
     try {
-      const response = await axios.post(
-        "https://your-api-endpoint.com/upload", // Replace with your API endpoint
+      const response = await axiosInstance.post(
+        "/font",
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data", // Required for file uploads
+            "Content-Type": "multipart/form-data", 
           },
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
             );
-            setUploadProgress(percentCompleted); // Track upload progress
+            setUploadProgress(percentCompleted); 
           },
         }
       );
       console.log("File uploaded successfully:", response.data);
-      setUploadProgress(null); // Reset progress after successful upload
+      setUploadProgress(null); 
+      dispatch(triggerRefresh()); // Trigger font list refresh
+
     } catch (error) {
       console.error("Error uploading file:", error);
       setError("File upload failed. Please try again.");
-      setUploadProgress(null); // Reset progress on error
+      setUploadProgress(null); 
     }
   };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setError(null); // Reset error state
-    setUploadProgress(null); // Reset progress bar state
-    const file = acceptedFiles[0]; // Accept a single file for now
+    setError(null);
+    setUploadProgress(null); 
+    const file = acceptedFiles[0]; 
 
-    // Validate file type using MIME type and extension
     const isValidTtf =
       file.type === "font/ttf" || file.name.toLowerCase().endsWith(".ttf");
 
     if (isValidTtf) {
-      setFileName(file.name); // Set file name
-      uploadFile(file); // Upload file via Axios
+      setFileName(file.name); 
+      uploadFile(file); 
     } else {
       setError("Please upload a valid TTF file.");
     }
@@ -56,9 +60,9 @@ const TtfUploader: React.FC = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "font/ttf": [".ttf"], // Specify allowed file type
+      "font/ttf": [".ttf"], 
     },
-    multiple: false, // Single file upload
+    multiple: false, 
   });
 
   return (
@@ -78,35 +82,21 @@ const TtfUploader: React.FC = () => {
         >
           <path
             stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.014 5.069 5 5 5a3 3 0 0 0-3 3v5a3 3 0 0 0 3 3h8z"
           />
         </svg>
-       
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {isDragActive ? (
-            <p className="text-blue-500">Drop the file here...</p>
-          ) : (
-            <p className="text-gray-500">
-              Drag & drop a TTF file here, or click to select one
-            </p>
-          )}
+        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+          <span className="font-semibold">Click to upload or drag and drop</span> your .ttf file here
         </p>
+     
+        {error && <p className="mt-2 text-red-500">{error}</p>}
+        {uploadProgress !== null && <p className="mt-2">Uploading: {uploadProgress}%</p>}
+        {fileName && <p className="mt-2">Uploaded file: {fileName}</p>}
+        <input {...getInputProps()} />
       </div>
-      <input {...getInputProps()} />
-
-      {fileName && <p className="text-green-600 mt-2">Uploaded: {fileName}</p>}
-      {uploadProgress !== null && (
-        <div className="w-full bg-gray-200 rounded-full h-4 mt-4">
-          <div
-            className="bg-blue-600 h-4 rounded-full"
-            style={{ width: `${uploadProgress}%` }}
-          ></div>
-        </div>
-      )}
-      {error && <p className="text-red-600 mt-2">{error}</p>}
     </div>
   );
 };
